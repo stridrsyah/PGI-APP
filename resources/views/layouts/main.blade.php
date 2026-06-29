@@ -199,8 +199,10 @@
             <div class="w-px h-6 bg-outline-variant/50 mx-2"></div>
             <div class="flex items-center gap-3 pl-2">
                 <div class="text-right hidden sm:block">
-                    <p class="text-label-md font-bold text-on-surface">Admin Utama</p>
-                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">Super Administrator</p>
+                    <p class="text-label-md font-bold text-on-surface">{{ auth()->user()->name }}</p>
+                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">
+                        {{ auth()->user()->isOwner() ? 'Owner' : 'Admin' }}
+                    </p>
                 </div>
                 <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/10">
                     <span class="material-symbols-outlined text-primary text-[18px]">person</span>
