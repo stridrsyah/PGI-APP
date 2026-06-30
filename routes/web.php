@@ -40,7 +40,7 @@ Route::middleware('auth')->group(function () {
      |  - Data HP, Merek, Supplier, Pelanggan
      |  - Pembelian, Penjualan, Booking, Servis, Pengeluaran
      ──────────────────────────────────────────────────────────────────────*/
-    Route::middleware('role:owner,admin')->group(function () {
+    Route::middleware('checkrole:owner,admin')->group(function () {
 
         /*── DATA HP ──*/
         Route::prefix('data-hp')->name('datahp.')->group(function () {
@@ -150,7 +150,7 @@ Route::middleware('auth')->group(function () {
      |  - Laporan Omzet  (semua sub-laporan + export)
      |  - Manajemen Pengguna & Pengaturan Sistem
      ──────────────────────────────────────────────────────────────────────*/
-    Route::middleware('role:owner')->group(function () {
+    Route::middleware('checkrole:owner')->group(function () {
 
         /*── LAPORAN ──*/
         Route::prefix('laporan')->name('laporan.')->group(function () {

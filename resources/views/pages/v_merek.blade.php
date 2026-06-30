@@ -1,293 +1,294 @@
 @extends('layouts.main')
+@section('title', 'Merek HP — Planet Gadget Indonesia')
+@section('search-placeholder', 'Cari nama merek atau kategori...')
 
-@section('title', 'Merek HP - Pusat Gadget Indonesia')
+@push('styles')
+<style>
+    .table-row-hover:hover {
+        background: #f5f2fd;
+    }
 
-@section('search-placeholder', 'Cari merek HP...')
+    .modal-backdrop {
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(4px);
+    }
+
+    .form-input {
+        @apply w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all;
+    }
+
+    .form-label {
+        @apply block text-label-md font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5;
+    }
+
+    .btn-primary {
+        @apply flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl font-semibold hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/20;
+    }
+
+    .btn-ghost {
+        @apply flex items-center gap-2 border border-outline-variant text-on-surface-variant px-5 py-2.5 rounded-xl font-medium hover:bg-surface-container transition-all;
+    }
+</style>
+@endpush
 
 @section('content')
-<!-- Page Header -->
-<div class="flex justify-between items-end mb-8">
+
+@if(session('success'))
+<div class="flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl mb-6">
+    <span class="material-symbols-outlined text-green-600" style="font-variation-settings:'FILL' 1;">check_circle</span>
+    <span class="text-body-md font-medium">{{ session('success') }}</span>
+</div>
+@endif
+
+{{-- Header --}}
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
     <div>
-        <h2 class="font-headline-lg text-headline-lg text-on-surface mb-2">Manajemen Kategori &amp; Merek</h2>
-        <p class="text-body-md text-on-surface-variant max-w-2xl">Kelola ekosistem produk Anda mulai dari identitas merek global hingga klasifikasi kategori teknis untuk efisiensi inventaris.</p>
+        <nav class="flex items-center gap-1.5 text-label-md text-on-surface-variant mb-2">
+            <a href="{{ route('dashboard') }}" class="hover:text-primary transition-colors">Dashboard</a>
+            <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+            <span class="text-on-surface font-semibold">Merek HP</span>
+        </nav>
+        <h1 class="text-headline-lg font-headline-lg text-on-surface">Merek & Kategori HP</h1>
+        <p class="text-body-md text-on-surface-variant mt-1">Kelola daftar merek dan kategorisasi produk.</p>
     </div>
-    <button class="flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all active:scale-[0.98]">
-        <span class="material-symbols-outlined">add_circle</span>
-        Tambah Kategori/Merek Baru
+    <button onclick="openModal('modal-tambah')" class="btn-primary">
+        <span class="material-symbols-outlined">add</span>
+        Tambah Merek
     </button>
 </div>
-<div class="bento-grid">
-    <!-- Left Column: Tabs Content -->
-    <div class="col-span-12 lg:col-span-9 space-y-gutter">
-        <!-- Tab Headers -->
-        <div class="flex gap-8 border-b border-outline-variant px-2">
-            <button class="pb-4 font-body-lg text-primary border-b-2 border-primary font-bold transition-all" id="tab-merek" onclick="switchTab('merek')">Merek Smartphone</button>
-            <button class="pb-4 font-body-lg text-on-surface-variant hover:text-primary transition-all" id="tab-kategori" onclick="switchTab('kategori')">Kategori Produk</button>
+
+{{-- Stats --}}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    @foreach([
+    ['icon'=>'branding_watermark', 'label'=>'Total Merek', 'value'=> $mereks->total(), 'color'=>'primary', 'fill'=>1],
+    ['icon'=>'check_circle', 'label'=>'Aktif', 'value'=> $mereks->getCollection()->where('status','aktif')->count(), 'color'=>'secondary', 'fill'=>1],
+    ['icon'=>'smartphone', 'label'=>'Total Produk', 'value'=> $mereks->getCollection()->sum('data_hps_count'), 'color'=>'tertiary', 'fill'=>0],
+    ['icon'=>'block', 'label'=>'Nonaktif', 'value'=> $mereks->getCollection()->where('status','nonaktif')->count(), 'color'=>'error', 'fill'=>1],
+    ] as $c)
+    <div class="bg-white rounded-2xl p-5 border border-outline-variant/40 shadow-sm hover:-translate-y-0.5 transition-transform">
+        <div class="w-10 h-10 rounded-xl bg-{{ $c['color'] }}/10 flex items-center justify-center mb-3">
+            <span class="material-symbols-outlined text-{{ $c['color'] }} text-[20px]" style="font-variation-settings:'FILL' {{ $c['fill'] }};">{{ $c['icon'] }}</span>
         </div>
-        <!-- Section: Merek Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-gutter" id="content-merek">
-            <!-- Samsung -->
-            <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-padding-card hover:shadow-md transition-all group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 flex items-center justify-center bg-blue-50 rounded-lg">
-                        <span class="material-symbols-outlined text-primary text-3xl">smartphone</span>
-                    </div>
-                    <span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-label-md rounded-full">Global Brand</span>
-                </div>
-                <h4 class="font-headline-md text-headline-md mb-1">Samsung</h4>
-                <p class="text-body-md text-on-surface-variant mb-4">Elektronika konsumen &amp; seluler Korea Selatan.</p>
-                <div class="flex items-center justify-between pt-4 border-t border-outline-variant/30">
-                    <span class="text-label-md text-outline">Stok Unit</span>
-                    <span class="font-bold text-primary">1,240 Unit</span>
-                </div>
-            </div>
-            <!-- Apple -->
-            <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-padding-card hover:shadow-md transition-all group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-lg">
-                        <span class="material-symbols-outlined text-on-background text-3xl">laptop_mac</span>
-                    </div>
-                    <span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-label-md rounded-full">Premium</span>
-                </div>
-                <h4 class="font-headline-md text-headline-md mb-1">Apple</h4>
-                <p class="text-body-md text-on-surface-variant mb-4">Inovasi desain &amp; ekosistem iOS terpadu.</p>
-                <div class="flex items-center justify-between pt-4 border-t border-outline-variant/30">
-                    <span class="text-label-md text-outline">Stok Unit</span>
-                    <span class="font-bold text-primary">850 Unit</span>
-                </div>
-            </div>
-            <!-- Xiaomi -->
-            <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-padding-card hover:shadow-md transition-all group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 flex items-center justify-center bg-orange-50 rounded-lg text-orange-600">
-                        <span class="material-symbols-outlined text-3xl">ad_units</span>
-                    </div>
-                    <span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-label-md rounded-full">Value</span>
-                </div>
-                <h4 class="font-headline-md text-headline-md mb-1">Xiaomi</h4>
-                <p class="text-body-md text-on-surface-variant mb-4">Teknologi tinggi dengan harga kompetitif.</p>
-                <div class="flex items-center justify-between pt-4 border-t border-outline-variant/30">
-                    <span class="text-label-md text-outline">Stok Unit</span>
-                    <span class="font-bold text-primary">2,100 Unit</span>
-                </div>
-            </div>
-            <!-- Oppo -->
-            <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-padding-card hover:shadow-md transition-all group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 flex items-center justify-center bg-green-50 rounded-lg text-green-600">
-                        <span class="material-symbols-outlined text-3xl">camera_enhance</span>
-                    </div>
-                    <span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-label-md rounded-full">Cam-Centric</span>
-                </div>
-                <h4 class="font-headline-md text-headline-md mb-1">Oppo</h4>
-                <p class="text-body-md text-on-surface-variant mb-4">Fokus pada fotografi seluler &amp; pengisian cepat.</p>
-                <div class="flex items-center justify-between pt-4 border-t border-outline-variant/30">
-                    <span class="text-label-md text-outline">Stok Unit</span>
-                    <span class="font-bold text-primary">945 Unit</span>
-                </div>
-            </div>
-            <!-- Vivo -->
-            <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-padding-card hover:shadow-md transition-all group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 flex items-center justify-center bg-blue-50 rounded-lg text-blue-500">
-                        <span class="material-symbols-outlined text-3xl">music_note</span>
-                    </div>
-                    <span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-label-md rounded-full">Lifestyle</span>
-                </div>
-                <h4 class="font-headline-md text-headline-md mb-1">Vivo</h4>
-                <p class="text-body-md text-on-surface-variant mb-4">Desain ramping &amp; inovasi audio Hi-Fi.</p>
-                <div class="flex items-center justify-between pt-4 border-t border-outline-variant/30">
-                    <span class="text-label-md text-outline">Stok Unit</span>
-                    <span class="font-bold text-primary">780 Unit</span>
-                </div>
-            </div>
-            <!-- Realme -->
-            <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-padding-card hover:shadow-md transition-all group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 flex items-center justify-center bg-yellow-50 rounded-lg text-yellow-600">
-                        <span class="material-symbols-outlined text-3xl">bolt</span>
-                    </div>
-                    <span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-label-md rounded-full">Young Adult</span>
-                </div>
-                <h4 class="font-headline-md text-headline-md mb-1">Realme</h4>
-                <p class="text-body-md text-on-surface-variant mb-4">Inovasi berani untuk generasi muda.</p>
-                <div class="flex items-center justify-between pt-4 border-t border-outline-variant/30">
-                    <span class="text-label-md text-outline">Stok Unit</span>
-                    <span class="font-bold text-primary">1,120 Unit</span>
-                </div>
-            </div>
+        <p class="text-label-md text-on-surface-variant uppercase tracking-wider">{{ $c['label'] }}</p>
+        <p class="text-2xl font-bold text-on-surface mt-0.5">{{ number_format($c['value']) }}</p>
+    </div>
+    @endforeach
+</div>
+
+{{-- Filter --}}
+<div class="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-5 mb-6">
+    <form method="GET" action="{{ route('merek.index') }}" class="flex flex-wrap gap-3">
+        <div class="flex-1 min-w-[220px] relative">
+            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">search</span>
+            <input name="search" value="{{ request('search') }}" placeholder="Nama merek atau kategori..."
+                class="w-full pl-10 pr-4 h-11 bg-surface-container-low border border-outline-variant rounded-xl text-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
         </div>
-        <!-- Section: Kategori Table (Hidden by default in logic) -->
-        <div class="hidden overflow-hidden bg-surface-container-lowest border border-outline-variant rounded-xl" id="content-kategori">
-            <table class="w-full text-left">
-                <thead class="bg-surface-container-low border-b border-outline-variant">
-                    <tr>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Kategori</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Deskripsi</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Item Unik</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-outline-variant/30">
-                    <tr class="hover:bg-surface-container transition-colors">
-                        <td class="p-4 flex items-center gap-3">
-                            <span class="material-symbols-outlined text-primary">smartphone</span>
-                            <span class="font-bold">Smartphone</span>
-                        </td>
-                        <td class="p-4 text-body-md text-on-surface-variant italic">Perangkat seluler cerdas...</td>
-                        <td class="p-4 font-bold text-primary">245 Model</td>
-                        <td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase">Aktif</span></td>
-                        <td class="p-4 text-right"><button class="material-symbols-outlined text-outline hover:text-primary">more_vert</button></td>
-                    </tr>
-                    <tr class="hover:bg-surface-container transition-colors">
-                        <td class="p-4 flex items-center gap-3">
-                            <span class="material-symbols-outlined text-primary">tablet</span>
-                            <span class="font-bold">Tablet</span>
-                        </td>
-                        <td class="p-4 text-body-md text-on-surface-variant italic">Layar lebar untuk produktivitas...</td>
-                        <td class="p-4 font-bold text-primary">42 Model</td>
-                        <td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase">Aktif</span></td>
-                        <td class="p-4 text-right"><button class="material-symbols-outlined text-outline hover:text-primary">more_vert</button></td>
-                    </tr>
-                    <tr class="hover:bg-surface-container transition-colors">
-                        <td class="p-4 flex items-center gap-3">
-                            <span class="material-symbols-outlined text-primary">headphones</span>
-                            <span class="font-bold">Aksesori</span>
-                        </td>
-                        <td class="p-4 text-body-md text-on-surface-variant italic">Audio, Case, Charger, dll...</td>
-                        <td class="p-4 font-bold text-primary">1,120 SKU</td>
-                        <td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase">Aktif</span></td>
-                        <td class="p-4 text-right"><button class="material-symbols-outlined text-outline hover:text-primary">more_vert</button></td>
-                    </tr>
-                    <tr class="hover:bg-surface-container transition-colors">
-                        <td class="p-4 flex items-center gap-3">
-                            <span class="material-symbols-outlined text-primary">watch</span>
-                            <span class="font-bold">Wearables</span>
-                        </td>
-                        <td class="p-4 text-body-md text-on-surface-variant italic">Smartwatch &amp; Fitness Band...</td>
-                        <td class="p-4 font-bold text-primary">88 Model</td>
-                        <td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase">Aktif</span></td>
-                        <td class="p-4 text-right"><button class="material-symbols-outlined text-outline hover:text-primary">more_vert</button></td>
-                    </tr>
-                    <tr class="hover:bg-surface-container transition-colors">
-                        <td class="p-4 flex items-center gap-3">
-                            <span class="material-symbols-outlined text-primary">memory</span>
-                            <span class="font-bold">Suku Cadang</span>
-                        </td>
-                        <td class="p-4 text-body-md text-on-surface-variant italic">Layar, Baterai, Komponen internal...</td>
-                        <td class="p-4 font-bold text-primary">560 SKU</td>
-                        <td class="p-4"><span class="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase">Restock Soon</span></td>
-                        <td class="p-4 text-right"><button class="material-symbols-outlined text-outline hover:text-primary">more_vert</button></td>
-                    </tr>
-                </tbody>
-            </table>
+        <button type="submit" class="btn-primary h-11 px-5"><span class="material-symbols-outlined text-[18px]">search</span> Cari</button>
+        @if(request('search'))
+        <a href="{{ route('merek.index') }}" class="btn-ghost h-11 px-5"><span class="material-symbols-outlined text-[18px]">close</span> Reset</a>
+        @endif
+    </form>
+</div>
+
+{{-- Table --}}
+<div class="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/30">
+        <p class="text-body-md text-on-surface-variant">
+            Menampilkan <span class="font-semibold text-on-surface">{{ $mereks->firstItem() }}–{{ $mereks->lastItem() }}</span>
+            dari <span class="font-semibold text-on-surface">{{ $mereks->total() }}</span> merek
+        </p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-body-md">
+            <thead>
+                <tr class="border-b border-outline-variant/30 bg-surface-container-low">
+                    <th class="text-left px-6 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Merek</th>
+                    <th class="text-left px-4 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Kategori</th>
+                    <th class="text-left px-4 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Deskripsi</th>
+                    <th class="text-center px-4 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Jumlah Produk</th>
+                    <th class="text-center px-4 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Status</th>
+                    <th class="text-center px-6 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/20">
+                @forelse($mereks as $m)
+                <tr class="table-row-hover transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center font-bold text-primary text-sm">
+                                {{ strtoupper(substr($m->nama,0,2)) }}
+                            </div>
+                            <p class="font-semibold text-on-surface">{{ $m->nama }}</p>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <span class="px-2.5 py-1 rounded-full bg-secondary/10 text-secondary text-label-md font-semibold">{{ $m->kategori }}</span>
+                    </td>
+                    <td class="px-4 py-4">
+                        <p class="text-on-surface-variant max-w-[200px] truncate">{{ $m->deskripsi ?? '—' }}</p>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="text-lg font-bold text-on-surface">{{ $m->data_hps_count }}</span>
+                        <p class="text-label-md text-on-surface-variant">produk</p>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        @if($m->status === 'aktif')
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-label-md font-bold bg-green-100 text-green-800">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span> Aktif
+                        </span>
+                        @else
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-label-md font-bold bg-red-100 text-red-800">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span> Nonaktif
+                        </span>
+                        @endif
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="openEditModal({{ $m->id }}, '{{ addslashes($m->nama) }}', '{{ $m->kategori }}', '{{ addslashes($m->deskripsi ?? '') }}', '{{ $m->status }}')"
+                                class="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                            <button onclick="confirmDelete({{ $m->id }}, '{{ addslashes($m->nama) }}')"
+                                class="p-2 rounded-lg hover:bg-error/10 text-error transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="px-6 py-16 text-center">
+                        <div class="flex flex-col items-center gap-3 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[48px] opacity-30">branding_watermark</span>
+                            <p class="text-body-lg font-medium">Belum ada data merek</p>
+                        </div>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    @if($mereks->hasPages())
+    <div class="px-6 py-4 border-t border-outline-variant/30 flex items-center justify-between">
+        <p class="text-body-md text-on-surface-variant">Halaman {{ $mereks->currentPage() }} dari {{ $mereks->lastPage() }}</p>
+        <div class="flex gap-1">
+            @if(!$mereks->onFirstPage())<a href="{{ $mereks->previousPageUrl() }}" class="px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[18px]">chevron_left</span></a>@endif
+            @foreach($mereks->getUrlRange(max(1,$mereks->currentPage()-2),min($mereks->lastPage(),$mereks->currentPage()+2)) as $pg => $url)
+            <a href="{{ $url }}" class="w-9 h-9 rounded-lg flex items-center justify-center text-body-md transition-colors {{ $pg==$mereks->currentPage() ? 'bg-primary text-on-primary font-semibold':'text-on-surface-variant hover:bg-surface-container' }}">{{ $pg }}</a>
+            @endforeach
+            @if($mereks->hasMorePages())<a href="{{ $mereks->nextPageUrl() }}" class="px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[18px]">chevron_right</span></a>@endif
         </div>
     </div>
-    <!-- Right Column: Statistics Sidebar -->
-    <div class="col-span-12 lg:col-span-3 space-y-gutter">
-        <!-- Most Popular Brand -->
-        <div class="bg-primary text-on-primary rounded-xl p-padding-card shadow-lg relative overflow-hidden">
-            <div class="relative z-10">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-xl">workspace_premium</span>
-                    <span class="font-label-md text-label-md uppercase tracking-widest opacity-80">Merek Terlaris</span>
-                </div>
-                <h3 class="font-display-lg text-display-lg mb-2">Samsung</h3>
-                <p class="text-body-md opacity-90">Kontribusi penjualan sebesar 38% di Q3 2023.</p>
-                <div class="mt-6 flex gap-2">
-                    <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">+12% vs last month</span>
-                </div>
-            </div>
-            <span class="material-symbols-outlined absolute -bottom-8 -right-8 text-[120px] opacity-10 rotate-12">trending_up</span>
+    @endif
+</div>
+
+{{-- Modal Tambah --}}
+<div id="modal-tambah" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-backdrop absolute inset-0" onclick="closeModal('modal-tambah')"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white rounded-t-3xl border-b border-outline-variant/30 px-8 py-5 flex items-center justify-between">
+            <h2 class="text-headline-md font-headline-md text-on-surface">Tambah Merek</h2>
+            <button onclick="closeModal('modal-tambah')" class="p-2 rounded-full hover:bg-surface-container"><span class="material-symbols-outlined text-on-surface-variant">close</span></button>
         </div>
-        <!-- Profit Contribution -->
-        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-padding-card">
-            <div class="flex items-center gap-2 mb-6">
-                <span class="material-symbols-outlined text-primary">payments</span>
-                <h3 class="font-headline-md text-headline-md">Laba Terbesar</h3>
+        <form method="POST" action="{{ route('merek.store') }}" class="px-8 py-6 space-y-5">
+            @csrf
+            <div><label class="form-label">Nama Merek <span class="text-error">*</span></label><input name="nama" type="text" required value="{{ old('nama') }}" placeholder="Contoh: Samsung" class="form-input" />@error('nama')<p class="text-label-md text-error mt-1">{{ $message }}</p>@enderror</div>
+            <div><label class="form-label">Kategori <span class="text-error">*</span></label><input name="kategori" type="text" required value="{{ old('kategori') }}" placeholder="Smartphone, Tablet, dll." class="form-input" />@error('kategori')<p class="text-label-md text-error mt-1">{{ $message }}</p>@enderror</div>
+            <div>
+                <label class="form-label">Status <span class="text-error">*</span></label>
+                <select name="status" required class="form-input">
+                    <option value="aktif" {{ old('status','aktif')=='aktif' ? 'selected':'' }}>Aktif</option>
+                    <option value="nonaktif" {{ old('status')=='nonaktif' ? 'selected':'' }}>Nonaktif</option>
+                </select>
             </div>
-            <div class="space-y-6">
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-body-md">Aksesori</span>
-                        <span class="font-bold text-primary">Rp 420M</span>
-                    </div>
-                    <div class="w-full bg-surface-container rounded-full h-2">
-                        <div class="bg-primary h-2 rounded-full" style="width: 85%"></div>
-                    </div>
-                </div>
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-body-md">Smartphone</span>
-                        <span class="font-bold text-primary">Rp 310M</span>
-                    </div>
-                    <div class="w-full bg-surface-container rounded-full h-2">
-                        <div class="bg-primary h-2 rounded-full" style="width: 65%"></div>
-                    </div>
-                </div>
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-body-md">Suku Cadang</span>
-                        <span class="font-bold text-primary">Rp 125M</span>
-                    </div>
-                    <div class="w-full bg-surface-container rounded-full h-2">
-                        <div class="bg-primary h-2 rounded-full" style="width: 25%"></div>
-                    </div>
-                </div>
+            <div><label class="form-label">Deskripsi</label><textarea name="deskripsi" rows="3" placeholder="Deskripsi singkat merek..." class="form-input resize-none">{{ old('deskripsi') }}</textarea></div>
+            <div class="flex justify-end gap-3 pt-2 border-t border-outline-variant/30">
+                <button type="button" onclick="closeModal('modal-tambah')" class="btn-ghost">Batal</button>
+                <button type="submit" class="btn-primary"><span class="material-symbols-outlined text-[18px]">save</span> Simpan</button>
             </div>
-            <button class="w-full mt-8 py-3 border border-outline text-outline rounded-lg text-label-md font-bold hover:bg-surface-container transition-colors">Lihat Laporan Detail</button>
+        </form>
+    </div>
+</div>
+
+{{-- Modal Edit --}}
+<div id="modal-edit" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-backdrop absolute inset-0" onclick="closeModal('modal-edit')"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white rounded-t-3xl border-b border-outline-variant/30 px-8 py-5 flex items-center justify-between">
+            <h2 class="text-headline-md font-headline-md text-on-surface">Edit Merek</h2>
+            <button onclick="closeModal('modal-edit')" class="p-2 rounded-full hover:bg-surface-container"><span class="material-symbols-outlined text-on-surface-variant">close</span></button>
         </div>
-        <!-- Quick Insight Card -->
-        <div class="bg-secondary-container text-on-secondary-container rounded-xl p-padding-card border border-outline-variant/20">
-            <div class="flex gap-4 items-start">
-                <div class="p-2 bg-white/50 rounded-lg">
-                    <span class="material-symbols-outlined text-primary">lightbulb</span>
-                </div>
-                <div>
-                    <p class="font-bold text-body-md mb-1">Insight Inventaris</p>
-                    <p class="text-label-md leading-relaxed opacity-80">Kategori "Wearables" mengalami kenaikan permintaan 15% di wilayah Jabodetabek. Pertimbangkan penambahan unit Apple Watch.</p>
-                </div>
+        <form id="form-edit" method="POST" action="" class="px-8 py-6 space-y-5">
+            @csrf @method('PUT')
+            <div><label class="form-label">Nama Merek <span class="text-error">*</span></label><input id="edit-nama" name="nama" type="text" required class="form-input" /></div>
+            <div><label class="form-label">Kategori <span class="text-error">*</span></label><input id="edit-kategori" name="kategori" type="text" required class="form-input" /></div>
+            <div><label class="form-label">Status <span class="text-error">*</span></label>
+                <select id="edit-status" name="status" required class="form-input">
+                    <option value="aktif">Aktif</option>
+                    <option value="nonaktif">Nonaktif</option>
+                </select>
             </div>
+            <div><label class="form-label">Deskripsi</label><textarea id="edit-deskripsi" name="deskripsi" rows="3" class="form-input resize-none"></textarea></div>
+            <div class="flex justify-end gap-3 pt-2 border-t border-outline-variant/30">
+                <button type="button" onclick="closeModal('modal-edit')" class="btn-ghost">Batal</button>
+                <button type="submit" class="btn-primary"><span class="material-symbols-outlined text-[18px]">save</span> Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Modal Hapus --}}
+<div id="modal-hapus" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-backdrop absolute inset-0" onclick="closeModal('modal-hapus')"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 text-center">
+        <div class="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-error text-[32px]" style="font-variation-settings:'FILL' 1;">delete_forever</span>
         </div>
+        <h3 class="text-headline-md font-headline-md mb-2">Hapus Merek?</h3>
+        <p id="hapus-nama" class="text-body-lg font-bold text-on-surface mb-4">—</p>
+        <p class="text-body-md text-error/80 mb-6">Produk dengan merek ini juga akan terpengaruh.</p>
+        <form id="form-hapus" method="POST" action="">
+            @csrf @method('DELETE')
+            <div class="flex gap-3">
+                <button type="button" onclick="closeModal('modal-hapus')" class="btn-ghost flex-1 justify-center">Batal</button>
+                <button type="submit" class="flex-1 flex items-center justify-center gap-2 bg-error text-white px-5 py-2.5 rounded-xl font-semibold hover:brightness-110 active:scale-95 transition-all">
+                    <span class="material-symbols-outlined text-[18px]">delete</span> Ya, Hapus
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 @endsection
 
 @push('scripts')
 <script>
-    function switchTab(type) {
-        const tabMerek = document.getElementById('tab-merek');
-        const tabKategori = document.getElementById('tab-kategori');
-        const contentMerek = document.getElementById('content-merek');
-        const contentKategori = document.getElementById('content-kategori');
-
-        if (type === 'merek') {
-            tabMerek.classList.add('text-primary', 'border-b-2', 'border-primary', 'font-bold');
-            tabMerek.classList.remove('text-on-surface-variant');
-            tabKategori.classList.remove('text-primary', 'border-b-2', 'border-primary', 'font-bold');
-            tabKategori.classList.add('text-on-surface-variant');
-
-            contentMerek.classList.remove('hidden');
-            contentKategori.classList.add('hidden');
-        } else {
-            tabKategori.classList.add('text-primary', 'border-b-2', 'border-primary', 'font-bold');
-            tabKategori.classList.remove('text-on-surface-variant');
-            tabMerek.classList.remove('text-primary', 'border-b-2', 'border-primary', 'font-bold');
-            tabMerek.classList.add('text-on-surface-variant');
-
-            contentKategori.classList.remove('hidden');
-            contentMerek.classList.add('hidden');
-        }
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+        document.getElementById(id).classList.add('flex');
+        document.body.style.overflow = 'hidden';
     }
 
-    // Search Bar Animation Focus
-    const searchInput = document.querySelector('input[type="text"]');
-    searchInput.addEventListener('focus', () => {
-        searchInput.parentElement.classList.add('ring-2', 'ring-primary/20', 'border-primary');
-    });
-    searchInput.addEventListener('blur', () => {
-        searchInput.parentElement.classList.remove('ring-2', 'ring-primary/20', 'border-primary');
-    });
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.getElementById(id).classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+
+    function openEditModal(id, nama, kategori, deskripsi, status) {
+        document.getElementById('form-edit').action = `/merek/${id}`;
+        document.getElementById('edit-nama').value = nama;
+        document.getElementById('edit-kategori').value = kategori;
+        document.getElementById('edit-deskripsi').value = deskripsi;
+        document.getElementById('edit-status').value = status;
+        openModal('modal-edit');
+    }
+
+    function confirmDelete(id, nama) {
+        document.getElementById('form-hapus').action = `/merek/${id}`;
+        document.getElementById('hapus-nama').textContent = nama;
+        openModal('modal-hapus');
+    }
+    @if($errors - > any()) openModal('modal-tambah');
+    @endif
 </script>
 @endpush

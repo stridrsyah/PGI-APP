@@ -1,347 +1,360 @@
 @extends('layouts.main')
+@section('title', 'Manajemen Pelanggan — Planet Gadget Indonesia')
+@section('search-placeholder', 'Cari nama, nomor HP, atau email pelanggan...')
 
-@section('title', 'Manajemen Pelanggan - Pusat Gadget Indonesia')
+@push('styles')
+<style>
+    .table-row-hover:hover {
+        background: #f5f2fd;
+    }
 
-@section('search-placeholder', 'Cari pelanggan, transaksi, atau bantuan...')
+    .modal-backdrop {
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(4px);
+    }
+
+    .form-input {
+        @apply w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all;
+    }
+
+    .form-label {
+        @apply block text-label-md font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5;
+    }
+
+    .btn-primary {
+        @apply flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl font-semibold hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary/20;
+    }
+
+    .btn-ghost {
+        @apply flex items-center gap-2 border border-outline-variant text-on-surface-variant px-5 py-2.5 rounded-xl font-medium hover:bg-surface-container transition-all;
+    }
+</style>
+@endpush
 
 @section('content')
-<!-- Header Section -->
-<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+
+{{-- ── Flash Messages ── --}}
+@if(session('success'))
+<div class="flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl mb-6">
+    <span class="material-symbols-outlined text-green-600" style="font-variation-settings:'FILL' 1;">check_circle</span>
+    <span class="text-body-md font-medium">{{ session('success') }}</span>
+</div>
+@endif
+
+{{-- ── Page Header ── --}}
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
     <div>
-        <h2 class="font-headline-lg text-headline-lg text-on-background">Manajemen Pelanggan</h2>
-        <p class="text-body-lg text-on-surface-variant max-w-xl">Kelola database pelanggan dan program loyalitas Anda.</p>
+        <nav class="flex items-center gap-1.5 text-label-md text-on-surface-variant mb-2">
+            <a href="{{ route('dashboard') }}" class="hover:text-primary transition-colors">Dashboard</a>
+            <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+            <span class="text-on-surface font-semibold">Pelanggan</span>
+        </nav>
+        <h1 class="text-headline-lg font-headline-lg text-on-surface">Manajemen Pelanggan</h1>
+        <p class="text-body-md text-on-surface-variant mt-1">Kelola database pelanggan & program loyalitas toko.</p>
     </div>
-    <button class="bg-primary text-on-primary px-6 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-primary-container transition-all active:scale-95 shadow-lg shadow-primary/10">
+    <button onclick="openModal('modal-tambah')" class="btn-primary">
         <span class="material-symbols-outlined">person_add</span>
-        <span>Tambah Pelanggan Baru</span>
+        Tambah Pelanggan
     </button>
 </div>
-<!-- Statistik Utama (4 Kartu) -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-8">
-    <div class="bg-surface-container-lowest p-padding-card rounded-xl border border-outline-variant/30 card-elevation transition-transform hover:-translate-y-1">
-        <div class="flex items-center justify-between mb-2">
-            <span class="p-2 bg-primary/5 text-primary rounded-lg">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">groups</span>
-            </span>
-            <span class="text-xs font-semibold text-primary px-2 py-1 bg-primary/10 rounded-full">Aktif</span>
+
+{{-- ── Stats Cards ── --}}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    @foreach([
+    ['icon'=>'groups', 'label'=>'Total Pelanggan', 'value'=> $pelanggans->total(), 'color'=>'primary', 'fill'=>1],
+    ['icon'=>'star', 'label'=>'Pelanggan Gold', 'value'=> $pelanggans->getCollection()->where('kategori','gold')->count(), 'color'=>'tertiary', 'fill'=>1],
+    ['icon'=>'workspace_premium','label'=>'Pelanggan Platinum', 'value'=> $pelanggans->getCollection()->where('kategori','platinum')->count(), 'color'=>'secondary', 'fill'=>1],
+    ['icon'=>'trending_up', 'label'=>'Transaksi Total', 'value'=> $pelanggans->getCollection()->sum('penjualans_count'), 'color'=>'error', 'fill'=>0],
+    ] as $card)
+    <div class="bg-white rounded-2xl p-5 border border-outline-variant/40 shadow-sm hover:-translate-y-0.5 transition-transform">
+        <div class="w-10 h-10 rounded-xl bg-{{ $card['color'] }}/10 flex items-center justify-center mb-3">
+            <span class="material-symbols-outlined text-{{ $card['color'] }} text-[20px]"
+                style="font-variation-settings:'FILL' {{ $card['fill'] }};">{{ $card['icon'] }}</span>
         </div>
-        <p class="text-on-surface-variant font-label-md">Total Pelanggan</p>
-        <h3 class="text-headline-lg font-bold">1,248</h3>
+        <p class="text-label-md text-on-surface-variant uppercase tracking-wider">{{ $card['label'] }}</p>
+        <p class="text-2xl font-bold text-on-surface mt-0.5">{{ number_format($card['value']) }}</p>
     </div>
-    <div class="bg-surface-container-lowest p-padding-card rounded-xl border border-outline-variant/30 card-elevation transition-transform hover:-translate-y-1">
-        <div class="flex items-center justify-between mb-2">
-            <span class="p-2 bg-tertiary/5 text-tertiary rounded-lg">
-                <span class="material-symbols-outlined">trending_up</span>
-            </span>
-            <span class="text-xs font-semibold text-tertiary px-2 py-1 bg-tertiary/10 rounded-full">+12%</span>
+    @endforeach
+</div>
+
+{{-- ── Filter ── --}}
+<div class="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-5 mb-6">
+    <form method="GET" action="{{ route('pelanggan.index') }}" class="flex flex-wrap gap-3">
+        <div class="flex-1 min-w-[220px] relative">
+            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">search</span>
+            <input name="search" value="{{ request('search') }}" placeholder="Nama, nomor HP, atau email..."
+                class="w-full pl-10 pr-4 h-11 bg-surface-container-low border border-outline-variant rounded-xl text-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
         </div>
-        <p class="text-on-surface-variant font-label-md">Pelanggan Baru Bulan Ini</p>
-        <h3 class="text-headline-lg font-bold">142</h3>
+        <select name="kategori" class="h-11 px-4 pr-8 bg-surface-container-low border border-outline-variant rounded-xl text-body-md focus:outline-none focus:border-primary appearance-none">
+            <option value="">Semua Kategori</option>
+            @foreach(['reguler'=>'Reguler','silver'=>'Silver','gold'=>'Gold','platinum'=>'Platinum'] as $val => $lbl)
+            <option value="{{ $val }}" {{ request('kategori') == $val ? 'selected' : '' }}>{{ $lbl }}</option>
+            @endforeach
+        </select>
+        <button type="submit" class="btn-primary h-11 px-5">
+            <span class="material-symbols-outlined text-[18px]">filter_list</span> Filter
+        </button>
+        @if(request()->hasAny(['search','kategori']))
+        <a href="{{ route('pelanggan.index') }}" class="btn-ghost h-11 px-5">
+            <span class="material-symbols-outlined text-[18px]">close</span> Reset
+        </a>
+        @endif
+    </form>
+</div>
+
+{{-- ── Table ── --}}
+<div class="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/30">
+        <p class="text-body-md text-on-surface-variant">
+            Menampilkan <span class="font-semibold text-on-surface">{{ $pelanggans->firstItem() }}–{{ $pelanggans->lastItem() }}</span>
+            dari <span class="font-semibold text-on-surface">{{ $pelanggans->total() }}</span> pelanggan
+        </p>
     </div>
-    <div class="bg-surface-container-lowest p-padding-card rounded-xl border border-outline-variant/30 card-elevation transition-transform hover:-translate-y-1">
-        <div class="flex items-center justify-between mb-2">
-            <span class="p-2 bg-secondary/5 text-secondary rounded-lg">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-            </span>
+    <div class="overflow-x-auto">
+        <table class="w-full text-body-md">
+            <thead>
+                <tr class="border-b border-outline-variant/30 bg-surface-container-low">
+                    <th class="text-left px-6 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Pelanggan</th>
+                    <th class="text-left px-4 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Kontak</th>
+                    <th class="text-center px-4 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Kategori</th>
+                    <th class="text-center px-4 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Transaksi</th>
+                    <th class="text-left px-4 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Alamat</th>
+                    <th class="text-center px-6 py-3 text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/20">
+                @forelse($pelanggans as $p)
+                @php
+                $initials = collect(explode(' ', $p->nama))->map(fn($w) => strtoupper($w[0]))->take(2)->join('');
+                $katColors = ['reguler'=>['bg-secondary/10','text-secondary'],'silver'=>['bg-outline/10','text-outline'],'gold'=>['bg-tertiary/10','text-tertiary'],'platinum'=>['bg-primary/10','text-primary']];
+                $kc = $katColors[$p->kategori] ?? ['bg-surface-container','text-on-surface-variant'];
+                @endphp
+                <tr class="table-row-hover transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm flex-shrink-0">
+                                {{ $initials }}
+                            </div>
+                            <div>
+                                <p class="font-semibold text-on-surface">{{ $p->nama }}</p>
+                                <p class="text-label-md text-on-surface-variant">{{ $p->email ?? '—' }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <p class="text-on-surface">{{ $p->no_hp }}</p>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="px-3 py-1 rounded-full text-label-md font-bold capitalize {{ $kc[0] }} {{ $kc[1] }}">
+                            {{ ucfirst($p->kategori) }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="text-lg font-bold text-on-surface">{{ $p->penjualans_count }}</span>
+                        <p class="text-label-md text-on-surface-variant">transaksi</p>
+                    </td>
+                    <td class="px-4 py-4">
+                        <p class="text-on-surface-variant text-body-md max-w-[180px] truncate">{{ $p->alamat ?? '—' }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="openEditModal({{ $p->id }}, '{{ addslashes($p->nama) }}', '{{ $p->no_hp }}', '{{ $p->email }}', '{{ addslashes($p->alamat ?? '') }}', '{{ $p->kategori }}')"
+                                class="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors" title="Edit">
+                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                            <button onclick="confirmDelete({{ $p->id }}, '{{ addslashes($p->nama) }}')"
+                                class="p-2 rounded-lg hover:bg-error/10 text-error transition-colors" title="Hapus">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="px-6 py-16 text-center">
+                        <div class="flex flex-col items-center gap-3 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[48px] opacity-30">group_off</span>
+                            <p class="text-body-lg font-medium">Belum ada data pelanggan</p>
+                        </div>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    @if($pelanggans->hasPages())
+    <div class="px-6 py-4 border-t border-outline-variant/30 flex items-center justify-between">
+        <p class="text-body-md text-on-surface-variant">Halaman {{ $pelanggans->currentPage() }} dari {{ $pelanggans->lastPage() }}</p>
+        <div class="flex gap-1">
+            @if(!$pelanggans->onFirstPage())
+            <a href="{{ $pelanggans->previousPageUrl() }}" class="px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">
+                <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+            </a>
+            @endif
+            @foreach($pelanggans->getUrlRange(max(1,$pelanggans->currentPage()-2), min($pelanggans->lastPage(),$pelanggans->currentPage()+2)) as $page => $url)
+            <a href="{{ $url }}" class="w-9 h-9 rounded-lg flex items-center justify-center text-body-md transition-colors {{ $page == $pelanggans->currentPage() ? 'bg-primary text-on-primary font-semibold' : 'text-on-surface-variant hover:bg-surface-container' }}">{{ $page }}</a>
+            @endforeach
+            @if($pelanggans->hasMorePages())
+            <a href="{{ $pelanggans->nextPageUrl() }}" class="px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">
+                <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </a>
+            @endif
         </div>
-        <p class="text-on-surface-variant font-label-md">Total Poin Loyalitas</p>
-        <h3 class="text-headline-lg font-bold">85.400 <span class="text-sm font-normal text-on-surface-variant">Poin</span></h3>
     </div>
-    <div class="bg-surface-container-lowest p-padding-card rounded-xl border border-outline-variant/30 card-elevation transition-transform hover:-translate-y-1">
-        <div class="flex items-center justify-between mb-2">
-            <span class="p-2 bg-error/5 text-error rounded-lg">
-                <span class="material-symbols-outlined">favorite</span>
-            </span>
-            <div class="flex text-amber-500">
-                <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+    @endif
+</div>
+
+{{-- ══ MODAL TAMBAH ══ --}}
+<div id="modal-tambah" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-backdrop absolute inset-0" onclick="closeModal('modal-tambah')"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white rounded-t-3xl border-b border-outline-variant/30 px-8 py-5 flex items-center justify-between">
+            <div>
+                <h2 class="text-headline-md font-headline-md text-on-surface">Tambah Pelanggan</h2>
+                <p class="text-body-md text-on-surface-variant">Isi data pelanggan baru.</p>
             </div>
+            <button onclick="closeModal('modal-tambah')" class="p-2 rounded-full hover:bg-surface-container transition-colors">
+                <span class="material-symbols-outlined text-on-surface-variant">close</span>
+            </button>
         </div>
-        <p class="text-on-surface-variant font-label-md">Rata-rata Kepuasan</p>
-        <h3 class="text-headline-lg font-bold">4.8<span class="text-sm font-normal text-on-surface-variant">/5.0</span></h3>
+        <form method="POST" action="{{ route('pelanggan.store') }}" class="px-8 py-6 space-y-5">
+            @csrf
+            <div>
+                <label class="form-label">Nama Lengkap <span class="text-error">*</span></label>
+                <input name="nama" type="text" required value="{{ old('nama') }}" placeholder="Nama lengkap pelanggan" class="form-input" />
+                @error('nama')<p class="text-label-md text-error mt-1">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="form-label">Nomor HP <span class="text-error">*</span></label>
+                <input name="no_hp" type="text" required value="{{ old('no_hp') }}" placeholder="08xx-xxxx-xxxx" class="form-input" />
+                @error('no_hp')<p class="text-label-md text-error mt-1">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="form-label">Email</label>
+                <input name="email" type="email" value="{{ old('email') }}" placeholder="email@contoh.com" class="form-input" />
+            </div>
+            <div>
+                <label class="form-label">Kategori Pelanggan <span class="text-error">*</span></label>
+                <select name="kategori" required class="form-input">
+                    @foreach(['reguler'=>'Reguler','silver'=>'Silver','gold'=>'Gold','platinum'=>'Platinum'] as $val => $lbl)
+                    <option value="{{ $val }}" {{ old('kategori','reguler') == $val ? 'selected' : '' }}>{{ $lbl }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Alamat</label>
+                <textarea name="alamat" rows="3" placeholder="Alamat lengkap pelanggan..." class="form-input resize-none">{{ old('alamat') }}</textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2 border-t border-outline-variant/30">
+                <button type="button" onclick="closeModal('modal-tambah')" class="btn-ghost">Batal</button>
+                <button type="submit" class="btn-primary">
+                    <span class="material-symbols-outlined text-[18px]">person_add</span> Simpan
+                </button>
+            </div>
+        </form>
     </div>
 </div>
-<!-- Content Grid: 2 Columns -->
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
-    <!-- Left Column: Table (8/12) -->
-    <div class="lg:col-span-8 space-y-gutter">
-        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 card-elevation overflow-hidden">
-            <div class="p-gutter border-b border-outline-variant/20 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h4 class="font-headline-md">Daftar Pelanggan</h4>
-                <div class="flex gap-2 w-full sm:w-auto">
-                    <button class="flex items-center gap-2 px-3 py-2 border border-outline-variant/50 rounded-lg text-body-md hover:bg-surface-variant/10">
-                        <span class="material-symbols-outlined text-sm">filter_list</span>
-                        Filter
-                    </button>
-                    <button class="flex items-center gap-2 px-3 py-2 border border-outline-variant/50 rounded-lg text-body-md hover:bg-surface-variant/10">
-                        <span class="material-symbols-outlined text-sm">file_download</span>
-                        Ekspor
-                    </button>
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead class="bg-surface-container-low/50">
-                        <tr>
-                            <th class="px-6 py-4 font-label-md text-on-surface-variant">Nama Pelanggan</th>
-                            <th class="px-6 py-4 font-label-md text-on-surface-variant">Kategori</th>
-                            <th class="px-6 py-4 font-label-md text-on-surface-variant">Kontak</th>
-                            <th class="px-6 py-4 font-label-md text-on-surface-variant">Transaksi</th>
-                            <th class="px-6 py-4 font-label-md text-on-surface-variant">Poin</th>
-                            <th class="px-6 py-4 font-label-md text-on-surface-variant">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-variant/20">
-                        <tr class="hover:bg-surface-container-low/30 transition-colors group">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-primary-container/20 text-primary flex items-center justify-center font-bold">AS</div>
-                                    <div>
-                                        <p class="font-semibold text-on-surface">Andi Saputra</p>
-                                        <p class="text-xs text-on-surface-variant">ID: PG-9921</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 bg-secondary-container/30 text-secondary font-label-md rounded-full">Gold</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <p class="text-body-md">0812-3456-7890</p>
-                                <p class="text-[10px] text-on-surface-variant italic">andi.s@gmail.com</p>
-                            </td>
-                            <td class="px-6 py-4 text-body-md font-medium">Rp 12.450.000</td>
-                            <td class="px-6 py-4 text-body-md">2,450 pts</td>
-                            <td class="px-6 py-4">
-                                <button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-variant/20 rounded-full">
-                                    <span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-surface-container-low/30 transition-colors group">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <img class="w-10 h-10 rounded-full object-cover" data-alt="Close up portrait of a young Indonesian woman with a friendly smile, dressed in professional attire. The photo has a soft, high-key lighting aesthetic with a minimalist white office background. She has clear skin and subtle, natural makeup, representing a premium customer of Pusat Gadget. Cohesive indigo color accents are subtly present in her accessories." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBamXl4soBTuDJJoX4Q8No9KERgztWYOutVBT0jbt2aVLJIq0gxShraiP2j5YRcRgi_2cUKHPFUGPV7zbWB9pGPnrkwL56kxvTiAg89yxAhYXveLdOPWFkOyRuPt63VN13ApFi7LMuMg8V6tK4P3cGcnDXdg10TXKlgGke4tr2HjxFJ2RZAFC3BO8exp5yWttUaYroLIWgnXUoevNrIKU9qw4H1uiU_zeYR5L-hjqI5JSarKrqJ7gWe5whOsnzupY34SmsGd-BIdl8" />
-                                    <div>
-                                        <p class="font-semibold text-on-surface">Siti Rahma</p>
-                                        <p class="text-xs text-on-surface-variant">ID: PG-8842</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 bg-surface-variant text-on-surface-variant font-label-md rounded-full">Silver</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <p class="text-body-md">0877-1122-3344</p>
-                                <p class="text-[10px] text-on-surface-variant italic">siti.r@outlook.com</p>
-                            </td>
-                            <td class="px-6 py-4 text-body-md font-medium">Rp 4.200.000</td>
-                            <td class="px-6 py-4 text-body-md">840 pts</td>
-                            <td class="px-6 py-4">
-                                <button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-variant/20 rounded-full">
-                                    <span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-surface-container-low/30 transition-colors group">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-tertiary-container/20 text-tertiary flex items-center justify-center font-bold">BP</div>
-                                    <div>
-                                        <p class="font-semibold text-on-surface">Budi Pratama</p>
-                                        <p class="text-xs text-on-surface-variant">ID: PG-7731</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 bg-surface-container-high text-on-surface-variant font-label-md rounded-full">Regular</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <p class="text-body-md">0819-9988-7766</p>
-                                <p class="text-[10px] text-on-surface-variant italic">budi_p@gmail.com</p>
-                            </td>
-                            <td class="px-6 py-4 text-body-md font-medium">Rp 1.150.000</td>
-                            <td class="px-6 py-4 text-body-md">115 pts</td>
-                            <td class="px-6 py-4">
-                                <button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-variant/20 rounded-full">
-                                    <span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-surface-container-low/30 transition-colors group">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <img class="w-10 h-10 rounded-full object-cover" data-alt="A portrait of a cheerful Indonesian man in his 30s, looking at the camera with confidence. He is wearing a minimalist, high-quality gray t-shirt. The background is a clean, bright white wall with soft side-lighting. He embodies a tech-savvy regular customer. The overall aesthetic is professional, clean, and in line with the Pusat Gadget branding." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0SBFh6AbvJS9H04Hg3wUnz58YyV_cRAfYXdbsV55q043Zy-0KoKr7Uaq_VI3-wZg7Df3eF_lxHI4sWTERnArN-M-EJiZmBzKb7pC1mwfem5hnO6F9vemGXX06aau4x7vtrIKxIutY0h45PSxBgDqghz7Ui1Ju1mx9mdWzOoxdHjfNnVUNkgNavPmx0DjOUXAR2XhOTdSqpyR9Mxk4NAiFqwJCX7o9quUm4AP0Ak8pwPkU7vk280SNR5Vadv41Y8tfYgMPU8YTqrc" />
-                                    <div>
-                                        <p class="font-semibold text-on-surface">Hendra Wijaya</p>
-                                        <p class="text-xs text-on-surface-variant">ID: PG-6610</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 bg-secondary-container/30 text-secondary font-label-md rounded-full">Gold</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <p class="text-body-md">0811-2233-4455</p>
-                                <p class="text-[10px] text-on-surface-variant italic">h.wijaya@corporate.com</p>
-                            </td>
-                            <td class="px-6 py-4 text-body-md font-medium">Rp 28.900.000</td>
-                            <td class="px-6 py-4 text-body-md">5,780 pts</td>
-                            <td class="px-6 py-4">
-                                <button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-variant/20 rounded-full">
-                                    <span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="p-gutter border-t border-outline-variant/20 flex justify-between items-center">
-                <p class="text-body-md text-on-surface-variant">Menampilkan 4 dari 1,248 pelanggan</p>
-                <div class="flex gap-1">
-                    <button class="w-8 h-8 flex items-center justify-center rounded bg-surface-variant/20 text-primary">1</button>
-                    <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-variant/20">2</button>
-                    <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-variant/20">3</button>
-                    <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-variant/20">
-                        <span class="material-symbols-outlined text-sm">chevron_right</span>
-                    </button>
-                </div>
-            </div>
+
+{{-- ══ MODAL EDIT ══ --}}
+<div id="modal-edit" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-backdrop absolute inset-0" onclick="closeModal('modal-edit')"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white rounded-t-3xl border-b border-outline-variant/30 px-8 py-5 flex items-center justify-between">
+            <h2 class="text-headline-md font-headline-md text-on-surface">Edit Pelanggan</h2>
+            <button onclick="closeModal('modal-edit')" class="p-2 rounded-full hover:bg-surface-container transition-colors">
+                <span class="material-symbols-outlined text-on-surface-variant">close</span>
+            </button>
         </div>
-    </div>
-    <!-- Right Column: Panels (4/12) -->
-    <div class="lg:col-span-4 space-y-gutter">
-        <!-- Panel Segmen Pelanggan -->
-        <div class="bg-surface-container-lowest p-padding-card rounded-xl border border-outline-variant/30 card-elevation">
-            <h4 class="font-headline-md mb-6">Segmen Pelanggan</h4>
-            <div class="relative w-48 h-48 mx-auto mb-6">
-                <!-- Simple Custom Pie Chart via CSS Gradients -->
-                <div class="w-full h-full rounded-full" style="background: conic-gradient(#3e40c3 0% 55%, #b9c7e0 55% 80%, #ffdcc6 80% 100%);"></div>
-                <div class="absolute inset-4 bg-surface-container-lowest rounded-full flex flex-center flex-col items-center justify-center">
-                    <span class="text-body-md font-semibold text-on-surface-variant">Top Segmen</span>
-                    <span class="text-headline-md font-bold text-primary">Smartphone</span>
-                </div>
+        <form id="form-edit" method="POST" action="" class="px-8 py-6 space-y-5">
+            @csrf @method('PUT')
+            <div>
+                <label class="form-label">Nama Lengkap <span class="text-error">*</span></label>
+                <input id="edit-nama" name="nama" type="text" required class="form-input" />
             </div>
-            <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-primary"></div>
-                        <span class="text-body-md">Smartphone</span>
-                    </div>
-                    <span class="font-semibold">55%</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-secondary-fixed-dim"></div>
-                        <span class="text-body-md">Aksesori</span>
-                    </div>
-                    <span class="font-semibold">25%</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-tertiary-fixed"></div>
-                        <span class="text-body-md">Tablet</span>
-                    </div>
-                    <span class="font-semibold">20%</span>
-                </div>
+            <div>
+                <label class="form-label">Nomor HP <span class="text-error">*</span></label>
+                <input id="edit-nohp" name="no_hp" type="text" required class="form-input" />
             </div>
-        </div>
-        <!-- Panel Ulasan Terbaru -->
-        <div class="bg-surface-container-lowest p-padding-card rounded-xl border border-outline-variant/30 card-elevation">
-            <div class="flex justify-between items-center mb-6">
-                <h4 class="font-headline-md">Ulasan Terbaru</h4>
-                <button class="text-primary font-semibold text-xs hover:underline">Lihat Semua</button>
+            <div>
+                <label class="form-label">Email</label>
+                <input id="edit-email" name="email" type="email" class="form-input" />
             </div>
-            <div class="space-y-6">
-                <div class="flex gap-4">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 rounded-full bg-secondary-container/50 text-secondary flex items-center justify-center text-xs font-bold">DP</div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between mb-1">
-                            <p class="font-semibold text-body-md truncate">Diana Putri</p>
-                            <div class="flex text-amber-500">
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                            </div>
-                        </div>
-                        <p class="text-body-md text-on-surface-variant line-clamp-2 italic">"Layanan servis sangat cepat dan ramah. Program poinnya juga sangat membantu penghematan belanja aksesori."</p>
-                        <p class="text-[10px] text-outline mt-1">2 Jam yang lalu • iPhone 15 Pro Max</p>
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 rounded-full bg-primary-container/20 text-primary flex items-center justify-center text-xs font-bold">RW</div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between mb-1">
-                            <p class="font-semibold text-body-md truncate">Rudi Wahyudi</p>
-                            <div class="flex text-amber-500">
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]">star</span>
-                            </div>
-                        </div>
-                        <p class="text-body-md text-on-surface-variant line-clamp-2 italic">"Barang ori, garansi resmi. Cuma stok casing warna biru sering habis. Mohon ditambah ya."</p>
-                        <p class="text-[10px] text-outline mt-1">Kemarin • Samsung S24 Ultra</p>
-                    </div>
-                </div>
-                <div class="flex gap-4 opacity-75">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 rounded-full bg-tertiary-container/10 text-tertiary flex items-center justify-center text-xs font-bold">AK</div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between mb-1">
-                            <p class="font-semibold text-body-md truncate">Anita Kusuma</p>
-                            <div class="flex text-amber-500">
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                            </div>
-                        </div>
-                        <p class="text-body-md text-on-surface-variant line-clamp-2 italic">"Sudah jadi langganan tetap di sini. Pelayanan gold member-nya luar biasa."</p>
-                        <p class="text-[10px] text-outline mt-1">2 Hari yang lalu • iPad Pro M2</p>
-                    </div>
-                </div>
+            <div>
+                <label class="form-label">Kategori <span class="text-error">*</span></label>
+                <select id="edit-kategori" name="kategori" required class="form-input">
+                    @foreach(['reguler'=>'Reguler','silver'=>'Silver','gold'=>'Gold','platinum'=>'Platinum'] as $val => $lbl)
+                    <option value="{{ $val }}">{{ $lbl }}</option>
+                    @endforeach
+                </select>
             </div>
-        </div>
+            <div>
+                <label class="form-label">Alamat</label>
+                <textarea id="edit-alamat" name="alamat" rows="3" class="form-input resize-none"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2 border-t border-outline-variant/30">
+                <button type="button" onclick="closeModal('modal-edit')" class="btn-ghost">Batal</button>
+                <button type="submit" class="btn-primary">
+                    <span class="material-symbols-outlined text-[18px]">save</span> Simpan Perubahan
+                </button>
+            </div>
+        </form>
     </div>
 </div>
+
+{{-- ══ MODAL HAPUS ══ --}}
+<div id="modal-hapus" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-backdrop absolute inset-0" onclick="closeModal('modal-hapus')"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 text-center">
+        <div class="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-error text-[32px]" style="font-variation-settings:'FILL' 1;">person_remove</span>
+        </div>
+        <h3 class="text-headline-md font-headline-md text-on-surface mb-2">Hapus Pelanggan?</h3>
+        <p id="hapus-nama" class="text-body-lg font-bold text-on-surface mb-4">—</p>
+        <p class="text-body-md text-error/80 mb-6">Data riwayat transaksi juga akan terpengaruh.</p>
+        <form id="form-hapus" method="POST" action="">
+            @csrf @method('DELETE')
+            <div class="flex gap-3">
+                <button type="button" onclick="closeModal('modal-hapus')" class="btn-ghost flex-1 justify-center">Batal</button>
+                <button type="submit" class="flex-1 flex items-center justify-center gap-2 bg-error text-white px-5 py-2.5 rounded-xl font-semibold hover:brightness-110 active:scale-95 transition-all">
+                    <span class="material-symbols-outlined text-[18px]">delete</span> Ya, Hapus
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
 <script>
-    // Micro-interactions and effects
-    document.addEventListener('DOMContentLoaded', () => {
-        // Shadow lift effect on cards
-        const cards = document.querySelectorAll('.card-elevation');
-        cards.forEach(card => {
-            card.addEventListener('mouseenter', () => {
-                card.style.transform = 'translateY(-4px)';
-                card.style.boxShadow = '0 10px 25px -5px rgba(62, 64, 195, 0.08), 0 8px 10px -6px rgba(62, 64, 195, 0.08)';
-            });
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = 'translateY(0)';
-                card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.02)';
-            });
-        });
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+        document.getElementById(id).classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
 
-        // Smooth fade in for table rows
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach((row, index) => {
-            row.style.opacity = '0';
-            row.style.transform = 'translateX(-10px)';
-            setTimeout(() => {
-                row.style.transition = 'all 0.4s ease-out';
-                row.style.opacity = '1';
-                row.style.transform = 'translateX(0)';
-            }, 100 * index);
-        });
-    });
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.getElementById(id).classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+
+    function openEditModal(id, nama, noHp, email, alamat, kategori) {
+        document.getElementById('form-edit').action = `/pelanggan/${id}`;
+        document.getElementById('edit-nama').value = nama;
+        document.getElementById('edit-nohp').value = noHp;
+        document.getElementById('edit-email').value = email;
+        document.getElementById('edit-alamat').value = alamat;
+        document.getElementById('edit-kategori').value = kategori;
+        openModal('modal-edit');
+    }
+
+    function confirmDelete(id, nama) {
+        document.getElementById('form-hapus').action = `/pelanggan/${id}`;
+        document.getElementById('hapus-nama').textContent = nama;
+        openModal('modal-hapus');
+    }
+    @if($errors - > any()) openModal('modal-tambah');
+    @endif
 </script>
 @endpush
